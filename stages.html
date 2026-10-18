@@ -128,6 +128,7 @@ h1{font-size:24px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
 .simtag.cur{background:var(--primary)}.simtag.ok{background:#166534}
 .node.dragging{box-shadow:0 10px 28px rgba(16,24,40,.18);cursor:grabbing;z-index:5}
 .nh{display:flex;align-items:center;gap:6px;padding:10px 10px 8px 12px}
+.nh .chip{white-space:normal;max-width:none;line-height:1.3}
 .chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:13px;font-weight:500;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
 .c-gray{background:#f1f3f6;color:#374151}.c-blue{background:#e8f0fe;color:#1d4ed8}.c-indigo{background:#eceefe;color:#3730a3}.c-purple{background:#f3e8ff;color:#7e22ce}
 .c-orange{background:#fff1e0;color:#c2410c}.c-green{background:#e4f6ea;color:#166534}.c-teal{background:#e2f5f2;color:#0f766e}.c-red{background:#fde8e8;color:#b91c1c}
@@ -398,7 +399,7 @@ const ROLES = ['seo','ed','km'];
 const RN = {seo:'SEO-специалист', ed:'Редактор', km:'Контент-менеджер'};
 const RS = {seo:'SEO', ed:'Редактор', km:'КМ'};
 const COLORS = {gray:'#e7eaef',blue:'#cfdffd',indigo:'#d9dcfb',purple:'#ead5fd',orange:'#fde0bd',green:'#c9ecd6',teal:'#c4ebe5',red:'#fbd0d0'};
-const STORE = 'vk-stage-map-v1';
+const STORE = 'vk-stage-map-v2';
 const NODE_W = 204;
 
 function defaults(){
@@ -407,10 +408,11 @@ function defaults(){
   return {
     stages:[
       S('draft','Черновик','gray','chain','СЕОшник ещё дописывает ТЗ — редакторам статья не отдана.',['seo'],['seo'],{start:true}),
-      S('new','Новая','gray','chain','СЕОшник отдал статью редакторам — её ещё никто не забрал.',['seo','ed'],['seo','ed']),
+      S('new','Новые статьи','gray','chain','СЕОшник отдал статью редакторам — её ещё никто не забрал.',['seo'],['seo','ed']),
       S('ed','У редактора','blue','chain','Редактор забрал статью в работу.',['ed'],['ed']),
-      S('place','На размещение','indigo','chain','Редактор передал статью контент-менеджеру.',['ed','km'],['ed','km']),
+      S('place','На размещение','indigo','chain','Редактор передал статью контент-менеджеру.',['ed'],['km']),
       S('km','У КМ','gray','chain','КМ забрал статью в работу.',['km'],['km']),
+      S('rework','Доработка редактором','gray','chain','КМ вернул статью редактору на доработку.',['km'],['ed'],{system:false}),
       S('pdraft','В черновике','purple','chain','КМ перенёс статью в черновик площадки.',['km'],['km']),
       S('mod','На модерации','orange','chain','Площадка проверяет статью на своей стороне.',['km'],['km']),
       S('pub','Опубликована','green','chain','Статья вышла — нужен её адрес.',['km'],['km','seo']),
@@ -422,8 +424,9 @@ function defaults(){
       S('del','Удалили','red','side','Статью сняли с площадки.',['km','seo'],[],{final:true}),
     ],
     edges:[
-      ['draft','new'],['new','draft'],['new','ed'],['ed','new'],['ed','place'],['place','ed'],['place','km'],['km','place'],
-      ['km','pdraft'],['pdraft','mod'],['mod','pdraft'],['mod','pub'],['pub','crab'],
+      ['draft','new'],['new','draft'],['new','ed'],['ed','place'],['place','km'],
+      ['km','rework'],['rework','place'],['km','pdraft'],
+      ['pdraft','mod'],['mod','pdraft'],['mod','pub'],['pub','crab'],
       ['pub','rkn'],['crab','rkn'],['pub','del'],['crab','del'],['rkn','pdraft'],
     ].map(([from,to])=>({from,to})),
   };
@@ -501,19 +504,25 @@ function plural(n, a, b, c){ const m10=n%10, m100=n%100; return m10===1&&m100!==
 function chainOrder(){
   const chain = state.stages.filter(s => s.kind==='chain');
   const start = chain.find(s => s.start) || chain[0];
-  const order = [], seen = new Set();
+  const order = [], loops = [], seen = new Set();
   const queue = start ? [start.id] : [];
   while (queue.length){
-    const id = queue.shift(); if (seen.has(id)) continue; seen.add(id); order.push(id);
-    out(id).map(e => stage(e.to)).filter(s => s.kind==='chain' && !seen.has(s.id)).forEach(s => queue.push(s.id));
+    const id = queue.shift(); if (seen.has(id)) continue; seen.add(id);
+    const next = out(id).map(e => stage(e.to)).filter(s => s.kind==='chain');
+    // этап-петля: все его переходы ведут назад, на уже пройденные этапы (например, «Доработка»)
+    if (order.length && next.length && next.every(s => seen.has(s.id))) loops.push({id, to:next[0].id});
+    else order.push(id);
+    next.filter(s => !seen.has(s.id)).forEach(s => queue.push(s.id));
   }
   chain.forEach(s => { if (!seen.has(s.id)) order.push(s.id); });
-  return order;
+  return {order, loops};
 }
 function autoLayout(){
   const STEP = 244, PER_ROW = 5;
-  chainOrder().forEach((id,i) => { const s = stage(id); s.x = (i % PER_ROW) * STEP; s.y = Math.floor(i / PER_ROW) * 200; });
-  const rows = Math.ceil(state.stages.filter(s => s.kind==='chain').length / PER_ROW);
+  const {order, loops} = chainOrder();
+  order.forEach((id,i) => { const s = stage(id); s.x = (i % PER_ROW) * STEP; s.y = Math.floor(i / PER_ROW) * 200; });
+  loops.forEach(l => { const s = stage(l.id), t = stage(l.to); s.x = t.x; s.y = t.y - 180; });
+  const rows = Math.ceil(order.length / PER_ROW);
   state.stages.filter(s => s.kind==='side').forEach((s,i) => { s.x = (i % PER_ROW) * STEP; s.y = rows*200 + 60 + Math.floor(i / PER_ROW) * 190; });
 }
 
