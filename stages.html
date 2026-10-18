@@ -401,7 +401,7 @@ const ROLES = ['seo','ed','km'];
 const RN = {seo:'SEO-специалист', ed:'Редактор', km:'Контент-менеджер'};
 const RS = {seo:'SEO', ed:'Редактор', km:'КМ'};
 const COLORS = {gray:'#e7eaef',blue:'#cfdffd',indigo:'#d9dcfb',purple:'#ead5fd',orange:'#fde0bd',green:'#c9ecd6',teal:'#c4ebe5',red:'#fbd0d0'};
-const STORE = 'vk-stage-map-v4';
+const STORE = 'vk-stage-map-v5';
 const NODE_W = 204;
 
 function defaults(){
@@ -420,8 +420,6 @@ function defaults(){
       S('pub','Опубликована','green','chain','Статья вышла — нужен её адрес.',['km'],['km','seo']),
       S('crab','В крабе','teal','chain','СЕОшник забрал опубликованную статью в краб.',['seo'],['seo','km'],{final:true}),
       S('nopart','Нет партнёрок','orange','side','Партнёрок под тему нет — работать не с чем.',['ed'],['ed'],{returnBack:true}),
-      S('pause','На паузе','gray','side','Работа приостановлена.',['km'],['km'],{fromAny:true,returnBack:true}),
-      S('dup','Повтор','gray','side','Такая статья уже есть.',['seo','ed','km'],[],{fromAny:true,final:true}),
       S('rkn','РКН забанил','red','side','РКН забанил, статья ушла в черновики.',['seo','ed','km'],['km']),
       S('del','Удалили','red','side','Статью сняли с площадки.',['km','seo'],[],{final:true}),
     ],
