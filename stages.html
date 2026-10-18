@@ -169,6 +169,10 @@ h1{font-size:24px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
 .edge-pop .who{color:var(--text-2);font-size:12px;margin-bottom:12px;line-height:1.45}
 .edge-pop .who.bad{color:var(--danger)}
 .edge-pop .acts{display:flex;gap:6px}
+.twin-row{padding:10px 0;border-top:1px solid var(--line-2)}
+.twin-row:first-of-type{border-top:0;padding-top:0}
+.twin-row .path,.twin-row .who{margin-bottom:8px}
+.edge-pop .btn.sm{padding:5px 10px;font-size:12.5px}
 
 /* ---------- Легенда ---------- */
 .legend{position:absolute;left:14px;bottom:14px;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:16px;font-size:12px;color:var(--text-2);align-items:center;z-index:4}
@@ -397,7 +401,7 @@ const ROLES = ['seo','ed','km'];
 const RN = {seo:'SEO-специалист', ed:'Редактор', km:'Контент-менеджер'};
 const RS = {seo:'SEO', ed:'Редактор', km:'КМ'};
 const COLORS = {gray:'#e7eaef',blue:'#cfdffd',indigo:'#d9dcfb',purple:'#ead5fd',orange:'#fde0bd',green:'#c9ecd6',teal:'#c4ebe5',red:'#fbd0d0'};
-const STORE = 'vk-stage-map-v3';
+const STORE = 'vk-stage-map-v4';
 const NODE_W = 204;
 
 function defaults(){
@@ -516,12 +520,36 @@ function chainOrder(){
   return {order, loops};
 }
 function autoLayout(){
-  const STEP = 244, PER_ROW = 5;
+  // Основной путь — змейкой: 1-й ряд слева направо, 2-й под ним справа налево и т. д.
+  // Сверху (ряд 0): петли-возвраты, боковые этапы с одним входом из 1-го ряда и этапы «из любого» без связей.
+  // Снизу: остальные боковые этапы — под центром своих соседей.
+  const STEP = 244, PER_ROW = 5, ROW_H = 210;
   const {order, loops} = chainOrder();
-  order.forEach((id,i) => { const s = stage(id); s.x = (i % PER_ROW) * STEP; s.y = Math.floor(i / PER_ROW) * 200; });
-  loops.forEach(l => { const s = stage(l.id), t = stage(l.to); s.x = t.x; s.y = t.y - 180; });
-  const rows = Math.ceil(order.length / PER_ROW);
-  state.stages.filter(s => s.kind==='side').forEach((s,i) => { s.x = (i % PER_ROW) * STEP; s.y = rows*200 + 60 + Math.floor(i / PER_ROW) * 190; });
+  const col = {}, row = {};
+  order.forEach((id,i) => { const r = Math.floor(i/PER_ROW), c = i % PER_ROW; row[id] = r+1; col[id] = r%2===0 ? c : PER_ROW-1-c; });
+  const mainRows = Math.max(1, Math.ceil(order.length/PER_ROW)), bottomRow = mainRows+1;
+  const taken = {};                                   // ряд -> занятые колонки (могут быть дробными)
+  const free = (r, c) => !(taken[r]||[]).some(x => Math.abs(x-c) < 1);
+  const put = (id, r, c) => { row[id] = r; col[id] = c; (taken[r] ||= []).push(c); };
+  const nearestFree = (r, want) => { for (let d=0; d<=PER_ROW*2; d++) for (const c of [Math.round(want)-d, Math.round(want)+d]) if (c>=0 && free(r,c)) return c; return 0; };
+  order.forEach(id => (taken[row[id]] ||= []).push(col[id]));
+  loops.forEach(l => {
+    const srcs = inc(l.id).map(e => e.from).filter(id => col[id]!=null), xs = [...srcs, l.to].map(id => col[id]);
+    const r = row[l.to]===1 ? 0 : row[l.to];
+    put(l.id, r===row[l.to] ? bottomRow : r, xs.reduce((a,b)=>a+b,0)/xs.length);
+  });
+  const sides = state.stages.filter(s => s.kind==='side');
+  const nb = id => [...inc(id).map(e=>e.from), ...out(id).map(e=>e.to)].filter(x => col[x]!=null && row[x]>=1 && row[x]<=mainRows);
+  sides.forEach(s => {                                // один вход из 1-го ряда — над источником
+    const ins = inc(s.id).map(e => e.from);
+    if (ins.length===1 && row[ins[0]]===1 && !out(s.id).length && free(0, col[ins[0]])) put(s.id, 0, col[ins[0]]);
+  });
+  sides.filter(s => row[s.id]==null && !nb(s.id).length).forEach(s => put(s.id, 0, nearestFree(0, 0)));
+  sides.filter(s => row[s.id]==null)
+    .map(s => { const n = nb(s.id).map(x => col[x]); return {s, want: n.reduce((a,b)=>a+b,0)/n.length}; })
+    .sort((p,q) => nb(q.s.id).length - nb(p.s.id).length)
+    .forEach(({s, want}) => put(s.id, bottomRow, nearestFree(bottomRow, want)));
+  state.stages.forEach(s => { if (row[s.id]==null) put(s.id, bottomRow, nearestFree(bottomRow, 0)); s.x = Math.round(col[s.id]*STEP); s.y = row[s.id]*ROW_H; });
 }
 
 /* ================= Проверка цепочки ================= */
@@ -632,11 +660,14 @@ function sideOf(a, b){ // с какой стороны карточки a вых
 }
 const OPP = {t:'b', b:'t', l:'r', r:'l'};
 let portCache = null;
+// пара встречных переходов A⇄B рисуется одной линией; «главная» — та, где from < to
+const isTwin = e => hasEdge(e.to, e.from);
+const lineOf = e => (isTwin(e) && e.from > e.to) ? {from:e.to, to:e.from} : e;
 function ports(){
   // раскладываем точки крепления стрелок вдоль каждой стороны, чтобы они не сходились в одну точку
   if (portCache) return portCache;
   const groups = {}, res = {};
-  state.edges.forEach(e => {
+  state.edges.filter(e => lineOf(e)===e).forEach(e => {
     const a = rect(e.from), b = rect(e.to), sa = sideOf(a,b), sb = OPP[sa];
     const canon = e.from < e.to ? 0 : 1;
     (groups[e.from+'|'+sa] ||= []).push({k:ekey(e), end:'from', other:b, canon});
@@ -658,9 +689,23 @@ function ports(){
   });
   return portCache = res;
 }
+function blocked(p1, p2, skip){
+  return state.stages.some(s => {
+    if (skip.includes(s.id)) return false;
+    const r = rect(s.id), pad = 8;
+    for (let t = 0.04; t < 1; t += 0.04){
+      const x = p1.x + (p2.x-p1.x)*t, y = p1.y + (p2.y-p1.y)*t;
+      if (x > r.x-pad && x < r.x+r.w+pad && y > r.y-pad && y < r.y+r.h+pad) return true;
+    }
+    return false;
+  });
+}
 function geom(e){
+  e = lineOf(e);
   const P = ports(), A = P[ekey(e)+'|from'], B = P[ekey(e)+'|to'];
   const p1 = A.p, p2 = B.p, n1 = A.n, n2 = B.n;
+  if (!blocked(p1, p2, [e.from, e.to]))
+    return {d:`M${p1.x},${p1.y} L${p2.x},${p2.y}`, mid:{x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2}};
   const dist = Math.hypot(p2.x-p1.x, p2.y-p1.y);
   const k = Math.max(24, Math.min(dist*0.45, 110));
   const c1 = {x:p1.x+n1.x*k, y:p1.y+n1.y*k}, c2 = {x:p2.x+n2.x*k, y:p2.y+n2.y*k};
@@ -676,21 +721,23 @@ function renderEdges(){
     const x = s.x + 28, y = s.y, on = st && st.any && st.any.includes(s.id);
     html += `<path class="stub${on?' on':''}" d="M${x},${y-44} L${x},${y-3}" marker-end="url(#ar-${on?'green':'stub'})"/><text class="stub-t" x="${x+8}" y="${y-30}">из любого этапа</text>`;
   });
-  state.edges.forEach(e => {
-    const k = ekey(e), g = geom(e);
+  state.edges.filter(e => lineOf(e)===e).forEach(e => {
+    const k = ekey(e), g = geom(e), twin = isTwin(e), back = twin ? {from:e.to, to:e.from} : null;
     let cls = 'edge', mk = 'gray';
-    const bad = stage(e.from).change.length && stage(e.to).assign.length && !via(e.from,e.to).length;
+    const isBad = x => stage(x.from).change.length && stage(x.to).assign.length && !via(x.from,x.to).length;
+    const bad = isBad(e) || (back && isBad(back));
     if (st){
       if (e.from===sim.stage && st.targets && st.targets.includes(e.to)){ cls+=' sim'; mk='green'; } else cls+=' dim';
     } else if (roleHL){
-      if (via(e.from,e.to).includes(roleHL)){ cls+=' hot'; mk='blue'; } else cls+=' dim';
+      if (via(e.from,e.to).includes(roleHL) || (back && via(back.from,back.to).includes(roleHL))){ cls+=' hot'; mk='blue'; } else cls+=' dim';
     } else if (sel && sel.type==='edge'){
-      if (sel.id===k){ cls+=' hot'; mk='blue'; } else cls+=' dim';
+      if (sel.id===k || (back && sel.id===ekey(back))){ cls+=' hot'; mk='blue'; } else cls+=' dim';
     } else if (sel && sel.type==='node'){
       if (e.from===sel.id || e.to===sel.id){ cls+=' hot'; mk='blue'; } else cls+=' dim';
     }
     if (bad && !cls.includes('dim') && !cls.includes('hot')){ cls+=' bad'; mk='red'; }
-    html += `<path class="${cls}" d="${g.d}" marker-end="url(#ar-${mk})"/><path class="edge-hit" data-edge="${k}" d="${g.d}"><title>${esc(stage(e.from).name)} → ${esc(stage(e.to).name)}</title></path>`;
+    const title = `${esc(stage(e.from).name)} ${twin ? '⇄' : '→'} ${esc(stage(e.to).name)}`;
+    html += `<path class="${cls}" d="${g.d}" marker-end="url(#ar-${mk})"${twin ? ` marker-start="url(#ar-${mk})"` : ''}/><path class="edge-hit" data-edge="${k}" d="${g.d}"><title>${title}</title></path>`;
   });
   $('#edgeG').innerHTML = html;
   renderEdgePop();
@@ -702,6 +749,17 @@ function renderEdgePop(){
   const e = state.edges.find(x => ekey(x)===sel.id); if (!e){ ov.innerHTML=''; return; }
   const {mid} = geom(e), a = stage(e.from), b = stage(e.to), v = via(e.from,e.to);
   const sx = mid.x*view.z + view.x, sy = mid.y*view.z + view.y;
+  if (isTwin(e)){
+    const L = lineOf(e), dirs = [L, {from:L.to, to:L.from}];
+    ov.innerHTML = `<div class="edge-pop" style="left:${sx}px;top:${sy}px">
+      <div class="t">Переходы в обе стороны</div>
+      ${dirs.map(d => { const w = via(d.from,d.to); return `<div class="twin-row">
+        <div class="path">${chip(stage(d.from))}<span style="color:var(--muted)">→</span>${chip(stage(d.to))}</div>
+        <div class="who ${w.length?'':'bad'}">${w.length ? `Делает: <b style="color:var(--text)">${w.map(r=>RN[r]).join(', ')}</b>` : 'Никто не может сделать — проверьте роли этапов'}</div>
+        <button class="btn sm danger" data-act="del-edge" data-key="${d.from}>${d.to}">Удалить этот переход</button></div>`; }).join('')}
+    </div>`;
+    return;
+  }
   ov.innerHTML = `<div class="edge-pop" style="left:${sx}px;top:${sy}px">
     <div class="t">Переход</div>
     <div class="path">${chip(a)}<span style="color:var(--muted)">→</span>${chip(b)}</div>
@@ -992,7 +1050,11 @@ function startConnect(id, e){
   };
   addEventListener('mousemove', mv); addEventListener('mouseup', up);
 }
-$('#overlay').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
+$('#overlay').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  if (b.dataset.key) sel = {type:'edge', id:b.dataset.key};
+  act(b.dataset.act);
+});
 $('#overlay').addEventListener('mousedown', e => e.stopPropagation());
 
 /* ================= Тулбар: события ================= */
