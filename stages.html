@@ -132,7 +132,6 @@ h1{font-size:24px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
 .chip{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:13px;font-weight:500;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
 .c-gray{background:#f1f3f6;color:#374151}.c-blue{background:#e8f0fe;color:#1d4ed8}.c-indigo{background:#eceefe;color:#3730a3}.c-purple{background:#f3e8ff;color:#7e22ce}
 .c-orange{background:#fff1e0;color:#c2410c}.c-green{background:#e4f6ea;color:#166534}.c-teal{background:#e2f5f2;color:#0f766e}.c-red{background:#fde8e8;color:#b91c1c}
-.lock{width:12px;height:12px;stroke:#b5bcc7;fill:none;stroke-width:2;flex:none}
 .help{margin-left:auto;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12px;font-weight:600;display:grid;place-items:center;flex:none;padding:0}
 .help:hover,.help.on{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
 .nr{padding:0 12px 10px;display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font-size:12px}
@@ -215,7 +214,6 @@ textarea.inp{resize:vertical;min-height:66px;line-height:1.45;font-size:13px}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;cursor:pointer;font-size:13px}
 .chk input{margin:2px 0 0;accent-color:var(--primary);width:15px;height:15px;flex:none}
 .chk small{display:block;color:var(--muted);font-size:12px;margin-top:2px;line-height:1.35}
-.sysnote{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
 .confirm{display:flex;gap:8px;align-items:center;font-size:13px}
 .issues{display:flex;flex-direction:column;gap:6px}
 .issue{display:flex;gap:10px;padding:9px 10px;border-radius:8px;background:var(--warn-soft);font-size:12.5px;line-height:1.4;color:#7c2d12;cursor:pointer;border:1px solid #fde3c4;text-align:left}
@@ -404,7 +402,7 @@ const NODE_W = 204;
 
 function defaults(){
   const S = (id,name,color,kind,hint,assign,change,extra={}) =>
-    ({id,name,color,kind,hint,assign,change,fromAny:false,returnBack:false,final:false,start:false,system:true,x:0,y:0,...extra});
+    ({id,name,color,kind,hint,assign,change,fromAny:false,returnBack:false,final:false,start:false,x:0,y:0,...extra});
   return {
     stages:[
       S('draft','Черновик','gray','chain','СЕОшник ещё дописывает ТЗ — редакторам статья не отдана.',['seo'],['seo'],{start:true}),
@@ -412,7 +410,7 @@ function defaults(){
       S('ed','У редактора','blue','chain','Редактор забрал статью в работу.',['ed'],['ed']),
       S('place','На размещение','indigo','chain','Редактор передал статью контент-менеджеру.',['ed'],['km']),
       S('km','У КМ','gray','chain','КМ забрал статью в работу.',['km'],['km']),
-      S('rework','Доработка редактором','gray','chain','КМ вернул статью редактору на доработку.',['km'],['ed'],{system:false}),
+      S('rework','Доработка редактором','gray','chain','КМ вернул статью редактору на доработку.',['km'],['ed']),
       S('pdraft','В черновике','purple','chain','КМ перенёс статью в черновик площадки.',['km'],['km']),
       S('mod','На модерации','orange','chain','Площадка проверяет статью на своей стороне.',['km'],['km']),
       S('pub','Опубликована','green','chain','Статья вышла — нужен её адрес.',['km'],['km','seo']),
@@ -555,7 +553,6 @@ function simTargets(){
 }
 
 /* ================= Рендер карточек ================= */
-const lockSvg = '<svg class="lock" viewBox="0 0 24 24" title="Системный этап"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
 function nodeClass(s, issueIds, st){
   const c = ['node'];
@@ -597,7 +594,7 @@ function renderNodes(){
       s.final ? '<span class="tag fin">конечный</span>' : '',
     ].join('');
     return `<div class="${nodeClass(s,issueIds,st)}" data-id="${s.id}" tabindex="0" role="button" aria-label="${esc(aria)}" style="left:${s.x}px;top:${s.y}px">${badge}${simtag}
-      <div class="nh">${chip(s)}${s.system ? lockSvg : ''}<button class="help ${hintFor===s.id?'on':''}" aria-label="Подсказка: ${esc(s.name)}" aria-expanded="${hintFor===s.id}">?</button></div>
+      <div class="nh">${chip(s)}<button class="help ${hintFor===s.id?'on':''}" aria-label="Подсказка: ${esc(s.name)}" aria-expanded="${hintFor===s.id}">?</button></div>
       <div class="nr"><span class="k">Назначает</span>${rv(s.assign, s.start ? false : true)}<span class="k">Изменяет</span>${rv(s.change, out(s.id).length>0 || s.returnBack)}</div>
       <div class="nf"><span class="cnt">← ${inc(s.id).length + (s.fromAny?'+':'')}</span><span class="cnt">${out(s.id).length + (s.returnBack?'+':'')} →</span>${tags}</div>
       <div class="port" title="Потяните к другому этапу — появится переход" aria-hidden="true"></div>
@@ -804,11 +801,9 @@ function stageForm(s){
     </div>
   </div>
   <div class="ifoot">
-    ${s.system
-      ? `<div class="sysnote">${lockSvg}Системный этап — удалить нельзя</div>`
-      : confirmDel
-        ? `<div class="confirm"><span>Удалить этап и его переходы?</span><span class="sp"></span><button class="btn sm" data-act="del-no">Нет</button><button class="btn sm danger" data-act="del-yes">Удалить</button></div>`
-        : `<button class="btn sm danger" data-act="del-ask">Удалить этап</button>`}
+    ${confirmDel
+      ? `<div class="confirm"><span>Удалить этап и его переходы?</span><span class="sp"></span><button class="btn sm" data-act="del-no">Нет</button><button class="btn sm danger" data-act="del-yes">Удалить</button></div>`
+      : `<button class="btn sm danger" data-act="del-ask">Удалить этап</button>`}
   </div>`;
 }
 function overview(){
@@ -866,7 +861,8 @@ function act(a){
   else if (a==='del-no'){ confirmDel = false; renderInspector(); }
   else if (a==='del-yes'){
     const id = sel.id, name = stage(id).name;
-    commit(() => { state.stages = state.stages.filter(s => s.id!==id); state.edges = state.edges.filter(e => e.from!==id && e.to!==id); sel = null; hintFor = null; }, `Этап «${name}» удалён`);
+    commit(() => { state.stages = state.stages.filter(s => s.id!==id); state.edges = state.edges.filter(e => e.from!==id && e.to!==id); sel = null; hintFor = null; });
+    toast(`Этап «${name}» удалён`, {label:'Вернуть', run:doUndo});
   }
   else if (a==='del-edge') deleteSelectedEdge();
   else if (a==='reverse'){
@@ -1010,7 +1006,7 @@ $('#btnAdd').onclick = () => {
   const p = {x:(c.width/2 - view.x)/view.z - NODE_W/2, y:(c.height/2 - view.y)/view.z - 50};
   const id = 's' + Date.now().toString(36);
   commit(() => {
-    state.stages.push({id, name:'Новый этап', color:'gray', kind:'chain', hint:'', assign:[], change:[], fromAny:false, returnBack:false, final:false, start:false, system:false, x:Math.round(p.x), y:Math.round(p.y)});
+    state.stages.push({id, name:'Новый этап', color:'gray', kind:'chain', hint:'', assign:[], change:[], fromAny:false, returnBack:false, final:false, start:false, x:Math.round(p.x), y:Math.round(p.y)});
     sel = {type:'node', id}; sim.on = false; roleHL = null;
   }, 'Этап добавлен — задайте название и переходы');
   const inp = document.querySelector('[data-text="name"]'); if (inp){ inp.focus(); inp.select(); }
