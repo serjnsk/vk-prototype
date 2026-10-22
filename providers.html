@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Провайдеры и модели</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f5f9; --panel:#fff; --line:#e5e8ee; --line-2:#eef0f4;
+  --text:#111827; --text-2:#4b5563; --muted:#6b7280; --muted-on-gray:#5f6673; --ctl-border:#8c95a3;
+  --primary:#1f63f0; --primary-soft:#eaf1fe; --primary-hover:#1852cc;
+  --ok:#16a34a; --ok-text:#166534; --ok-soft:#e7f7ee; --warn:#c2410c; --warn-soft:#fff4e5; --danger:#dc2626; --danger-text:#b91c1c; --danger-soft:#fdecec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;cursor:pointer;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* ---------- Каркас (как в stages.html) ---------- */
+.app{display:flex;height:100vh}
+.sidebar{width:250px;flex:none;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column}
+.logo{height:56px;display:flex;align-items:center;padding:0 16px;font-weight:700;color:var(--primary);font-size:15px;border-bottom:1px solid var(--line)}
+.nav{padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#1f2937;text-decoration:none;font-size:14px;line-height:1.35}
+.nav a:hover{background:#f5f7fa}
+.nav a.active{background:var(--primary-soft);color:var(--primary);font-weight:500}
+.nav svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.user{margin-top:auto;border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:600;font-size:13px}
+.user b{display:block;font-weight:500;font-size:14px}.user span{font-size:12px;color:var(--muted)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:56px;flex:none;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 16px 0 24px}
+.icon-btn{background:none;border:0;color:var(--muted);padding:6px;border-radius:6px;display:grid;place-items:center}
+.icon-btn:hover{background:#f3f4f6;color:var(--text-2)}
+.page{flex:1;min-height:0;overflow:auto;padding:22px 24px 40px}
+h1{font-size:24px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--muted-on-gray);font-size:13px;margin:0 0 16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tabs a{padding:9px 12px 11px;color:#374151;text-decoration:none;font-size:15px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.active{color:var(--primary);border-color:var(--primary);font-weight:500}
+.app.collapsed .sidebar{width:64px}
+.app.collapsed .logo{font-size:0;justify-content:center}.app.collapsed .logo::after{content:"V";font-size:17px}
+.app.collapsed .nav a{font-size:0;justify-content:center;padding:10px 0}
+.app.collapsed .user > div:last-child{display:none}.app.collapsed .user{justify-content:center;padding:12px 0}
+
+/* ---------- Общие элементы ---------- */
+.seg{display:inline-flex;background:#f1f3f6;border-radius:8px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:5px 10px;border-radius:6px;font-size:13px;color:#4b5563}
+#logSeg button{flex:1}
+.seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 2px rgba(16,24,40,.08);font-weight:500}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;min-height:30px;font-size:13px;color:#1f2937;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn:hover{background:#f7f8fa}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:500}
+.btn.primary:hover{background:var(--primary-hover)}
+.btn.ghost{border-color:transparent;background:none;color:var(--text-2)}
+.btn.ghost:hover{background:#f3f4f6}
+.btn.sm{padding:4px 10px;min-height:28px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px}
+.card-h{display:flex;align-items:center;gap:12px;padding:14px 16px 12px;border-bottom:1px solid var(--line-2)}
+.card-h b{font-size:15px;font-weight:600}
+.card-h small{font-size:12px;color:var(--muted)}
+.sp{flex:1}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;background:#f3f4f6;color:#4b5563;font-size:11px;font-weight:500;white-space:nowrap}
+.tag.cur{background:var(--primary-soft);color:var(--primary)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.pdot{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.status.ok{color:var(--ok-text)}
+.status.degraded{color:var(--warn)}.status.degraded::before{background:#f59e0b}
+.status.down{color:var(--danger-text)}.status.down::before{background:var(--danger)}
+.left{font-size:12px;white-space:nowrap}
+.left.ok{color:var(--ok-text)}.left.warn{color:var(--warn)}.left.bad{color:var(--danger-text);font-weight:600}.left.idle{color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:#eef0f4;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--ok)}
+.bar.warn i{background:#f59e0b}.bar.bad i{background:var(--danger)}.bar.idle i{background:#c3c8d1}
+.prices{display:grid;grid-template-columns:repeat(3,auto);gap:2px 14px;font-size:12px}
+.prices .k{color:var(--muted)}
+.prices .v{font-weight:500;font-variant-numeric:tabular-nums}
+.delta-up{color:var(--danger-text)}.delta-down{color:var(--ok-text)}
+.hidden{display:none !important}
+.up{font-size:12px;color:var(--text-2);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.up b{font-weight:600;font-variant-numeric:tabular-nums}
+.up.ok b{color:var(--ok-text)}.up.warn b{color:var(--warn)}.up.bad b{color:var(--danger-text)}
+.days{display:flex;gap:2px;height:16px;align-items:stretch}
+.days i{flex:1;border-radius:2px;background:#4ade80}
+.days i.warn{background:#f59e0b}.days i.bad{background:var(--danger)}
+.poll{font-variant-numeric:tabular-nums}
+
+/* Таблицы */
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+.t th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:#fff;position:sticky;top:0;z-index:1}
+.t th.r,.t td.r{text-align:right}
+.t td{padding:9px 10px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.t tr.grp td{background:#f8f9fb;border-bottom:1px solid var(--line);padding:10px}
+.t tr:hover td{background:#fafbfd}
+.t tr.grp:hover td{background:#f8f9fb}
+.t tr.on td{background:#f4f8ff}
+.t .mname{font-weight:500}
+.t .msub{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+
+.mtag{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;white-space:nowrap}
+
+/* ---------- Дашборд ---------- */
+.sec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 10px}
+.sec-h b{font-size:15px;font-weight:600}
+.sec-h small{font-size:12px;color:var(--muted)}
+.bal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.bal{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.bal .top{display:flex;align-items:center;gap:8px}
+.bal .top b{font-weight:600}
+.bal .amt{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.bal .meta{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bal.low{border-color:#f5c2c2;box-shadow:0 0 0 3px rgba(220,38,38,.06)}
+.wm-h{display:flex;align-items:center;gap:12px;padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+.wm-h b{font-size:15px;font-weight:600}
+.wm-h small{font-size:12px;color:var(--muted)}
+.wm td{padding:12px 10px}
+.wm td:first-child,.wm th:first-child{padding-left:16px}
+.wm td:last-child,.wm th:last-child{padding-right:16px}
+.wm .tname{font-weight:600}
+.wm .cell-m{width:400px}
+.wm .note{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12px}
+.wm .note .w{color:var(--warn)}
+.wm tr:hover td{background:#fff}
+/* Выпадающий список моделей с поиском */
+.cb-trig{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--ctl-border);background:#fff;border-radius:8px;padding:6px 10px;min-height:36px;text-align:left}
+.cb-trig:hover{border-color:#6b7280}
+.cb-trig[aria-expanded=true]{border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,99,240,.15)}
+.cb-trig .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb-trig .nm span{color:var(--muted)}
+.cb-trig .ph{color:var(--muted)}
+.cb-trig svg{width:16px;height:16px;flex:none;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cb-pop{position:fixed;z-index:70;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px rgba(16,24,40,.18);display:none;flex-direction:column;overflow:hidden}
+.cb-pop.show{display:flex}
+.cb-search{padding:10px;border-bottom:1px solid var(--line);position:relative}
+.cb-search input{width:100%;border:1px solid var(--ctl-border);border-radius:8px;padding:7px 10px 7px 32px;font-size:13px}
+.cb-search input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,99,240,.15)}
+.cb-search svg{position:absolute;left:20px;top:50%;margin-top:-8px;width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round}
+.cb-head{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 64px 80px;gap:8px;padding:6px 12px 6px 30px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line-2)}
+.cb-head span:not(:first-child){text-align:right}
+.cb-list{overflow:auto;padding-bottom:6px}
+.cb-grp{display:flex;align-items:center;gap:8px;padding:10px 12px 4px;font-size:12px;font-weight:600;color:var(--text-2);position:sticky;top:0;background:#fff;z-index:1}
+.cb-grp .cb-bal{margin-left:auto;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.cb-opt{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px 64px 80px;gap:8px;align-items:center;padding:7px 12px 7px 30px;cursor:pointer;font-size:13px}
+.cb-opt.act{background:#f1f5fd}
+.cb-opt[aria-selected=true]{background:var(--primary-soft)}
+.cb-opt .n{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.cb-opt .n b{font-weight:500}
+.cb-opt .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--text-2);font-size:12.5px}
+.cb-opt .mo{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.cb-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+/* Форма в модальном окне */
+label.fld input,label.fld select{border:1px solid var(--ctl-border);border-radius:8px;padding:7px 10px;font-size:13px;background:#fff}
+
+/* ---------- Модальное окно ---------- */
+.modal-wrap{position:fixed;inset:0;display:grid;place-items:center;z-index:60;background:rgba(17,24,39,.36);opacity:0;pointer-events:none;transition:opacity .15s}
+.modal-wrap.show{opacity:1;pointer-events:auto}
+.modal{width:560px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);overflow:auto;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(16,24,40,.25)}
+.modal h3{margin:0;padding:18px 20px 4px;font-size:17px;font-weight:600}
+.modal .mb{padding:10px 20px 4px;display:flex;flex-direction:column;gap:14px}
+.modal .mf{padding:14px 20px 18px;display:flex;justify-content:flex-end;gap:8px}
+.cmp{display:grid;grid-template-columns:1fr 24px 1fr;align-items:stretch;gap:8px}
+.cmp .box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.cmp .box.new{border-color:var(--primary);background:#f8fbff}
+.cmp .box small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.cmp .box b{font-size:14px}
+.cmp .box span{font-size:12px;color:var(--text-2)}
+.cmp .arr{display:grid;place-items:center;color:var(--muted)}
+.facts{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.facts div{display:flex;gap:8px;align-items:flex-start;line-height:1.45}
+.facts i{font-style:normal;width:18px;flex:none;text-align:center}
+label.fld{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--text-2)}
+label.fld textarea{border:1px solid var(--ctl-border);border-radius:8px;padding:8px 10px;min-height:64px;resize:vertical;font-size:13px}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:#111827;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;transition:all .2s;pointer-events:none;z-index:100;display:flex;gap:8px;align-items:center}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{border:0;background:none;color:#93b4ff;font-weight:600;font-size:13px;padding:2px 4px;margin-left:6px}
+.toast button:hover{color:#fff}
+
+@media (max-width:1200px){
+  .bal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wm .cell-m{width:300px}
+}
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{transition:none !important;animation:none !important} }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="logo">Vkontente</div>
+    <nav class="nav">
+      <a href="#" title="Статьи"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Статьи</a>
+      <a href="stages.html" title="Справочники"><svg viewBox="0 0 24 24"><path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2zM22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/></svg>Справочники</a>
+      <a href="#" title="ТОПы наглядно"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M2 20h20"/></svg>ТОПы наглядно</a>
+      <a href="#" title="Сервисы"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/></svg>Сервисы</a>
+      <a href="#" title="Офферы"><svg viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/></svg>Офферы</a>
+      <a href="#" title="Ссылки в статье"><svg viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>Ссылки в статье</a>
+      <a href="#" title="Некорректные ссылки"><svg viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17v.5"/></svg>Некорректные ссылки</a>
+      <a href="#" title="Планы и факты по неделям"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Планы и факты по неделям</a>
+      <a href="#" title="Системные промпты"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>Системные промпты</a>
+      <a href="#" title="Расходы на ИИ"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></svg>Расходы на ИИ</a>
+      <a href="#" title="Пользователи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c.5-3.5 3.5-5.5 7-5.5s6.5 2 7 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.5 2.6 4 5.5"/></svg>Пользователи</a>
+      <a href="#" class="active" title="Настройки"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Настройки</a>
+    </nav>
+    <div class="user"><div class="avatar">A</div><div><b>admin</b><span>Администратор</span></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="btnCollapse" title="Свернуть меню" aria-label="Свернуть меню"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/></svg></button>
+      <span class="sp"></span>
+      <div class="avatar">A</div>
+    </header>
+
+    <div class="page" id="page">
+      <h1>Настройки</h1>
+      <p class="sub">Какой ИИ-провайдер и модель выполняют каждый вид задач. Меняет только администратор, каждое переключение пишется в журнал.</p>
+      <nav class="tabs">
+        <a href="#">Общие</a><a href="#" class="active">Провайдеры и модели</a><a href="#">Ключи API</a><a href="#">Уведомления</a>
+      </nav>
+      <div id="view"></div>
+    </div>
+  </div>
+</div>
+
+<div class="cb-pop" id="cbPop"></div>
+<div class="modal-wrap" id="modalWrap"><div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ============ Демо-данные ============ */
+// Цены в $ за 1M токенов. Кэш — чтение из кэша промпта.
+const PROVIDERS = [
+  {id:'anthropic', uptime:99.97, name:'Anthropic', kind:'Напрямую',  balance:1240.50, status:'ok',       note:'',                     color:'#c2410c', soft:'#fff1e0'},
+  {id:'openai', uptime:99.92,    name:'OpenAI',    kind:'Напрямую',  balance:86.20,   status:'ok',       note:'',                     color:'#0f766e', soft:'#e2f5f2'},
+  {id:'tokenflow', uptime:99.41, name:'Tokenflow', kind:'Агрегатор', balance:412.00,  status:'ok',       note:'',                     color:'#3730a3', soft:'#eceefe'},
+  {id:'genspark', uptime:97.80,  name:'Genspark',  kind:'Агрегатор', balance:18.40,   status:'degraded', note:'7% ошибок за последний час', color:'#7e22ce', soft:'#f3e8ff'},
+  {id:'aiprime', uptime:99.85,   name:'AI Prime',  kind:'Агрегатор', balance:731.75,  status:'ok',       note:'',                     color:'#1d4ed8', soft:'#e8f0fe'},
+  {id:'deepseek', uptime:99.60,  name:'DeepSeek',  kind:'Напрямую',  balance:54.10,   status:'ok',       note:'',                     color:'#166534', soft:'#e4f6ea'},
+  {id:'kimi',     uptime:99.12,  name:'Kimi',      kind:'Напрямую',  balance:96.30,   status:'ok',       note:'',                     color:'#be185d', soft:'#fce7f3'},
+  {id:'gemini',   uptime:99.95,  name:'Gemini',    kind:'Напрямую',  balance:305.00,  status:'ok',       note:'',                     color:'#a16207', soft:'#fef3c7'},
+];
+// Аптайм по дням за 30 дней (демо): провалы в дни сбоев
+const DOWN_DAYS = {anthropic:{12:99.2}, openai:{5:98.4, 21:99.1}, tokenflow:{9:96.5, 21:94.0, 22:97.9}, genspark:{3:95.0, 14:92.1, 27:88.5, 29:93.4}, aiprime:{17:97.6}, deepseek:{6:98.0, 19:97.2}, kimi:{2:97.9, 11:96.8, 24:99.3}, gemini:{15:99.4}};
+const upDays = pid => Array.from({length:30}, (_, i) => DOWN_DAYS[pid][i] ?? 100);
+const upCls = v => v >= 99.9 ? 'ok' : v >= 99 ? 'warn' : 'bad';
+const upTxt = v => v.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%';
+const MODELS = [
+  {id:'an-opus',   p:'anthropic', name:'Claude Opus 5.5',   in:5.00, cache:0.50,  out:25.00},
+  {id:'an-sonnet', p:'anthropic', name:'Claude Sonnet 5.5', in:3.00, cache:0.30,  out:15.00},
+  {id:'an-haiku',  p:'anthropic', name:'Claude Haiku 5.5',  in:1.00, cache:0.10,  out:5.00},
+  {id:'oa-gpt5',   p:'openai',    name:'GPT-5',             in:1.25, cache:0.125, out:10.00},
+  {id:'oa-mini',   p:'openai',    name:'GPT-5 mini',        in:0.25, cache:0.025, out:2.00},
+  {id:'oa-nano',   p:'openai',    name:'GPT-5 nano',        in:0.05, cache:0.005, out:0.40},
+  {id:'tf-sonnet', p:'tokenflow', name:'Claude Sonnet 5.5', in:2.40, cache:0.24,  out:12.00},
+  {id:'tf-gpt5',   p:'tokenflow', name:'GPT-5',             in:1.10, cache:0.11,  out:8.80},
+  {id:'tf-ds',     p:'tokenflow', name:'DeepSeek V3.2',     in:0.30, cache:0.03,  out:0.45},
+  {id:'gs-opus',   p:'genspark',  name:'Claude Opus 5.5',   in:4.00, cache:0.40,  out:20.00},
+  {id:'gs-mini',   p:'genspark',  name:'GPT-5 mini',        in:0.22, cache:0.022, out:1.80},
+  {id:'ap-opus',   p:'aiprime',   name:'Claude Opus 5.5',   in:3.75, cache:0.375, out:18.75},
+  {id:'ap-sonnet', p:'aiprime',   name:'Claude Sonnet 5.5', in:2.25, cache:0.225, out:11.25},
+  {id:'ap-haiku',  p:'aiprime',   name:'Claude Haiku 5.5',  in:0.80, cache:0.08,  out:4.00},
+  {id:'ds-v32',    p:'deepseek',  name:'DeepSeek V3.2',     in:0.28, cache:0.028, out:0.42},
+  {id:'ds-r2',     p:'deepseek',  name:'DeepSeek R2',       in:0.55, cache:0.14,  out:2.19},
+  {id:'km-k2',     p:'kimi',      name:'Kimi K2.5',         in:0.60, cache:0.10,  out:3.00},
+  {id:'km-k2t',    p:'kimi',      name:'Kimi K2.5 Thinking',in:0.80, cache:0.15,  out:3.50},
+  {id:'gm-pro',    p:'gemini',    name:'Gemini 3 Pro',      in:2.00, cache:0.20,  out:12.00},
+  {id:'gm-flash',  p:'gemini',    name:'Gemini 3 Flash',    in:0.50, cache:0.05,  out:3.00},
+  {id:'gm-lite',   p:'gemini',    name:'Gemini 3 Flash-Lite', in:0.10, cache:0.01, out:0.40},
+];
+// Виды задач. Объём токенов в сутки (млн) — среднее за последние 7 дней; у нового вида объёма ещё нет
+let TIERS = [
+  {id:'hard', name:'Сложные задачи', vol:{in:3.2, cache:6.0, out:0.9}},
+  {id:'mid',  name:'Средние задачи', vol:{in:5.0, cache:4.0, out:1.6}},
+  {id:'easy', name:'Лёгкие задачи',  vol:{in:9.0, cache:2.0, out:0.6}},
+];
+
+let assign = {hard:'ap-opus', mid:'oa-gpt5', easy:'ds-v32'};
+// Журнал: новые сверху. from = null — начальная настройка
+let LOG = [
+  {t:new Date(2026,9,21,18,42), who:'admin', tier:'mid',  from:'tf-gpt5',   to:'oa-gpt5', why:'Tokenflow отдавал 502 на длинных запросах, ушли на прямой OpenAI'},
+  {t:new Date(2026,9,20,9,15),  who:'admin', tier:'hard', from:'gs-opus',  to:'ap-opus', why:'У Genspark почти закончился баланс и сбои'},
+  {t:new Date(2026,9,16,12,3),  who:'admin', tier:'easy', from:'oa-mini',   to:'ds-v32',  why:'В 4 раза дешевле, качество мета-тегов не упало'},
+  {t:new Date(2026,9,12,10,30), who:'admin', tier:'mid',  from:'an-sonnet', to:'tf-gpt5', why:'Экономия на рерайте'},
+  {t:new Date(2026,9,7,16,20),  who:'admin', tier:'hard', from:'an-opus',   to:'gs-opus', why:'У Genspark скидка 20% на Opus'},
+  {t:new Date(2026,9,1,11,0),   who:'admin', tier:'hard', from:null, to:'an-opus',   why:'Начальная настройка'},
+  {t:new Date(2026,9,1,11,0),   who:'admin', tier:'mid',  from:null, to:'an-sonnet', why:'Начальная настройка'},
+  {t:new Date(2026,9,1,11,0),   who:'admin', tier:'easy', from:null, to:'oa-mini',   why:'Начальная настройка'},
+];
+
+/* ============ Расчёты ============ */
+const P = id => PROVIDERS.find(p => p.id === id);
+const M = id => MODELS.find(m => m.id === id);
+const T = id => TIERS.find(t => t.id === id);
+const active = () => TIERS.filter(t => !t.deleted);
+// Стоимость в сутки на объёме вида задач; null — объёма ещё нет
+const dayCost = (m, t) => t.vol ? t.vol.in*m.in + t.vol.cache*m.cache + t.vol.out*m.out : null;
+const monthCost = (m, t) => t.vol ? dayCost(m, t)*30 : null;
+// Пороги баланса — фиксированные суммы, без прогноза: расход неравномерный
+const LOW = 100, CRIT = 25;
+const balCls = p => p.balance < CRIT ? 'bad' : p.balance < LOW ? 'warn' : 'ok';
+// Какие виды задач сейчас идут через провайдера
+function usedBy(pid){ return active().filter(t => M(assign[t.id]).p === pid).map(t => t.name.toLowerCase()); }
+const upHtml = p => `<span class="up ${upCls(p.uptime)}" title="Доля успешных опросов за 30 дней">Аптайм <b>${upTxt(p.uptime)}</b></span>`;
+const daysHtml = p => `<div class="days" role="img" aria-label="Аптайм ${p.name} по дням за 30 дней">${upDays(p.id).map((v, i) =>
+  `<i class="${v >= 99.9 ? '' : v >= 97 ? 'warn' : 'bad'}" title="${30 - i} дн. назад: ${upTxt(v)}"></i>`).join('')}</div>`;
+// Опрос API провайдеров раз в минуту
+let lastPoll = Date.now();
+const pollHtml = () => `<span class="poll">Опрос API раз в минуту · обновлено <span class="poll-ago">${agoTxt()}</span></span>`;
+function agoTxt(){ const s = Math.floor((Date.now() - lastPoll)/1000); return s < 5 ? 'только что' : `${s} с назад`; }
+const usd = (v, d = 2) => '$' + v.toLocaleString('ru-RU', {minimumFractionDigits:d, maximumFractionDigits:d});
+const price = v => '$' + v.toLocaleString('ru-RU', {minimumFractionDigits: v < 0.1 ? 3 : 2, maximumFractionDigits:3});
+const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + usd(Math.abs(v), 0);
+const pad = n => String(n).padStart(2, '0');
+const fdt = d => `${pad(d.getDate())}.${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const volTxt = t => t.vol ? `${(t.vol.in + t.vol.cache + t.vol.out).toLocaleString('ru-RU', {maximumFractionDigits:1})} млн токенов в сутки` : 'объёма ещё нет';
+const totalMonth = () => active().reduce((s, t) => s + (monthCost(M(assign[t.id]), t) ?? 0), 0);
+
+/* ============ Мелкие куски разметки ============ */
+const pdot = p => `<span class="pdot" style="background:${p.color}" aria-hidden="true"></span>`;
+const statusHtml = p => p.status === 'ok' ? '<span class="status ok">Работает</span>'
+  : p.status === 'degraded' ? `<span class="status degraded" title="${esc(p.note)}">Сбои</span>` : '<span class="status down">Недоступен</span>';
+const mtag = id => { const m = M(id), p = P(m.p); return `<span class="mtag">${pdot(p)}${p.name} · ${m.name}</span>`; };
+const chevron = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+function trigHtml(key, mid, label){
+  const m = mid && M(mid), p = m && P(m.p);
+  return `<button type="button" class="cb-trig" data-cb="${key}" aria-haspopup="listbox" aria-expanded="false" aria-label="${esc(label)}">
+    ${m ? `${pdot(p)}<span class="nm">${m.name} <span>· ${p.name}</span></span>` : '<span class="nm ph">Выберите модель</span>'}${chevron}</button>`;
+}
+// Журнал переключений
+function logTableHtml(items){
+  if (!items.length) return '<p class="muted" style="padding:16px">Переключений нет</p>';
+  return `<table class="t"><thead><tr><th>Когда</th><th>Вид задач</th><th>Было</th><th>Стало</th><th class="r">Цена месяца</th><th>Кто</th><th>Причина</th></tr></thead>
+    <tbody>${items.map(e => { const t = T(e.tier); const dm = e.from && t.vol ? monthCost(M(e.to),t) - monthCost(M(e.from),t) : null;
+      return `<tr class="${e.fresh ? 'on' : ''}"><td class="num" style="white-space:nowrap">${fdt(e.t)}</td><td>${esc(t.name)}${t.deleted ? ' <span class="tag">удалён</span>' : ''}</td><td>${e.from ? mtag(e.from) : '<span class="muted">—</span>'}</td><td>${mtag(e.to)}</td>
+      <td class="r num ${dm > 0 ? 'delta-up' : dm < 0 ? 'delta-down' : ''}">${dm === null ? '—' : signed(dm)}</td><td>${esc(e.who)}</td><td style="color:var(--text-2)">${esc(e.why || '—')}</td></tr>`; }).join('')}</tbody></table>`;
+}
+
+/* ============ Страница ============ */
+let logFilter = 'all';
+function render(){
+  const prov = PROVIDERS.map(p => `<div class="card bal ${balCls(p) === 'bad' ? 'low' : ''}">
+      <div class="top">${pdot(p)}<b>${p.name}</b><span class="sp"></span>${statusHtml(p)}</div>
+      <div class="amt">${usd(p.balance)}</div>
+      <div class="meta">${upHtml(p)}</div>
+      ${daysHtml(p)}
+    </div>`).join('');
+  const list = active();
+  const rows = list.map(t => {
+    const m = M(assign[t.id]), p = P(m.p), mc = monthCost(m, t);
+    const notes = [];
+    if (p.status !== 'ok') notes.push(`<span class="w">${p.name}: ${esc(p.note)}</span>`);
+    return `<tr>
+      <td><span class="tname">${esc(t.name)}</span></td>
+      <td class="cell-m">${trigHtml(t.id, m.id, `Модель для «${t.name}»`)}${notes.length ? `<div class="note">${notes.join('')}</div>` : ''}</td>
+      <td class="r num">${price(m.in)}</td><td class="r num">${price(m.cache)}</td><td class="r num">${price(m.out)}</td>
+      <td class="r num" title="${esc(volTxt(t))}">${mc === null ? '<span class="muted" title="Посчитаем после первых 7 дней работы">нет данных</span>' : `<b>${usd(mc, 0)}</b>`}</td>
+      <td class="r"><button class="icon-btn" data-del="${t.id}" ${list.length < 2 ? 'disabled title="Должен остаться хотя бы один вид задач"' : `title="Удалить вид задач"`} aria-label="Удалить «${esc(t.name)}»"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td>
+    </tr>`;
+  }).join('');
+  if (logFilter !== 'all' && !list.some(t => t.id === logFilter)) logFilter = 'all';
+  const items = LOG.filter(e => logFilter === 'all' || e.tier === logFilter);
+  view.innerHTML = `
+    <div class="sec-h"><b>Балансы провайдеров</b><small>${pollHtml()}</small><span class="sp"></span><button class="btn ghost sm" data-act="refresh"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>Обновить</button></div>
+    <div class="bal-grid">${prov}</div>
+
+    <section class="card wm">
+      <div class="wm-h"><b>Рабочие модели</b><small>Какая модель выполняет каждый вид задач · итого ≈ ${usd(totalMonth(), 0)} в месяц</small><span class="sp"></span>
+        <button class="btn" data-act="addTier"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Добавить вид задач</button></div>
+      <table class="t">
+        <thead><tr><th>Вид задач</th><th>Модель</th><th class="r">Вход, $/1M</th><th class="r">Кэш, $/1M</th><th class="r">Выход, $/1M</th><th class="r" title="На среднем объёме за 7 дней">≈ В месяц</th><th><span class="sr-only" style="position:absolute;left:-9999px">Действия</span></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>
+
+    <section class="card" style="margin-top:24px">
+      <div class="card-h"><b>Журнал переключений</b><small>Кто, когда и почему сменил модель</small><span class="sp"></span>
+        <div class="seg" id="logSeg">${[['all','Все'],...list.map(t => [t.id, t.name.replace(/ задачи$/, '')])].map(([k,v]) => `<button data-f="${k}" class="${logFilter===k?'on':''}">${esc(v)}</button>`).join('')}</div>
+      </div>
+      ${logTableHtml(items)}
+    </section>`;
+}
+
+/* ============ Выпадающий список моделей ============ */
+// cb = {trig, tier, cur, onPick, q, act}
+let cb = null;
+const cbPop = document.getElementById('cbPop');
+function openCombo(trig, opts){
+  closeCombo();
+  cb = {trig, q:'', act:0, ...opts};
+  trig.setAttribute('aria-expanded', 'true');
+  cbPop.innerHTML = `<div class="cb-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="cbQ" type="text" placeholder="Поиск модели или провайдера" autocomplete="off" role="combobox" aria-controls="cbList" aria-expanded="true"></div>
+    <div class="cb-head"><span>Модель</span><span>Вход</span><span>Кэш</span><span>Выход</span><span>≈ в месяц</span></div>
+    <div class="cb-list" id="cbList" role="listbox"></div>`;
+  cbPop.classList.add('show');
+  placeCombo();
+  renderComboList();
+  cbPop.querySelector('#cbQ').focus();
+}
+function placeCombo(){
+  const r = cb.trig.getBoundingClientRect(), w = Math.max(r.width, 620), vh = window.innerHeight;
+  const below = vh - r.bottom - 12, above = r.top - 12, up = below < 320 && above > below;
+  cbPop.style.width = w + 'px';
+  cbPop.style.left = Math.min(r.left, window.innerWidth - w - 12) + 'px';
+  cbPop.style.maxHeight = Math.min(480, up ? above : below) + 'px';
+  cbPop.style.top = up ? '' : (r.bottom + 4) + 'px';
+  cbPop.style.bottom = up ? (vh - r.top + 4) + 'px' : '';
+}
+function comboItems(){
+  const q = cb.q.trim().toLowerCase();
+  return MODELS.filter(m => !q || (m.name + ' ' + P(m.p).name).toLowerCase().includes(q));
+}
+function renderComboList(){
+  const items = comboItems();
+  cb.act = Math.min(cb.act, Math.max(0, items.length - 1));
+  const box = cbPop.querySelector('#cbList');
+  if (!items.length){ box.innerHTML = `<div class="cb-empty">Ничего не найдено по «${esc(cb.q)}»</div>`; return; }
+  box.innerHTML = PROVIDERS.filter(p => items.some(m => m.p === p.id)).map(p => `
+    <div class="cb-grp" role="presentation">${pdot(p)}${p.name}${p.status !== 'ok' ? ' ' + statusHtml(p) : ''}<span class="cb-bal">баланс ${usd(p.balance, 0)}</span></div>
+    ${items.filter(m => m.p === p.id).map(m => { const i = items.indexOf(m), mc = cb.tier ? monthCost(m, cb.tier) : null;
+      return `<div class="cb-opt ${i === cb.act ? 'act' : ''}" role="option" id="cbo-${m.id}" data-opt="${m.id}" aria-selected="${m.id === cb.cur}"
+        title="${esc(`${m.name} · ${p.name}\nВход ${price(m.in)} · Кэш ${price(m.cache)} · Выход ${price(m.out)} за 1M токенов`)}">
+        <span class="n"><b>${m.name}</b>${m.id === cb.cur ? '<span class="tag cur">сейчас</span>' : ''}</span>
+        <span class="v">${price(m.in)}</span><span class="v">${price(m.cache)}</span><span class="v">${price(m.out)}</span>
+        <span class="mo">${mc === null ? '<span class="muted" style="font-weight:400">—</span>' : usd(mc, 0)}</span></div>`; }).join('')}`).join('');
+  const a = box.querySelector('.cb-opt.act');
+  cbPop.querySelector('#cbQ').setAttribute('aria-activedescendant', a ? a.id : '');
+}
+function moveCombo(dir){
+  const items = comboItems(); if (!items.length) return;
+  cb.act = (cb.act + dir + items.length) % items.length;
+  renderComboList();
+  cbPop.querySelector('.cb-opt.act')?.scrollIntoView({block:'nearest'});
+}
+function pickCombo(mid){
+  const c = cb; closeCombo(true);
+  c.onPick(mid);
+}
+function closeCombo(keepFocus){
+  if (!cb) return;
+  cb.trig.setAttribute('aria-expanded', 'false');
+  if (!keepFocus) cb.trig.focus();
+  cbPop.classList.remove('show'); cb = null;
+}
+cbPop.addEventListener('mousedown', e => { if (e.target.id !== 'cbQ') e.preventDefault(); });
+cbPop.addEventListener('click', e => { const o = e.target.closest('[data-opt]'); if (o) pickCombo(o.dataset.opt); });
+cbPop.addEventListener('mousemove', e => { const o = e.target.closest('[data-opt]'); if (!o) return;
+  const i = comboItems().findIndex(m => m.id === o.dataset.opt); if (i !== cb.act){ cb.act = i; cbPop.querySelectorAll('.cb-opt').forEach(x => x.classList.toggle('act', x === o)); } });
+cbPop.addEventListener('input', e => { if (e.target.id === 'cbQ'){ cb.q = e.target.value; cb.act = 0; renderComboList(); } });
+cbPop.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown'){ e.preventDefault(); moveCombo(1); }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); moveCombo(-1); }
+  else if (e.key === 'Enter'){ e.preventDefault(); const m = comboItems()[cb.act]; if (m) pickCombo(m.id); }
+  else if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeCombo(); }
+  else if (e.key === 'Tab') closeCombo(true);
+});
+document.addEventListener('mousedown', e => { if (cb && !cbPop.contains(e.target) && !cb.trig.contains(e.target)) closeCombo(true); });
+document.getElementById('page').addEventListener('scroll', () => cb && placeCombo());
+window.addEventListener('resize', () => cb && placeCombo());
+
+/* ============ Смена модели ============ */
+let confirmCtx = null, lastFocus = null;
+function openConfirm(tid, mid){
+  lastFocus = document.activeElement;
+  confirmCtx = {kind:'switch', tier: tid, to: mid};
+  const t = T(tid), from = M(assign[t.id]), to = M(mid), pf = P(from.p), pt = P(to.p);
+  const mFrom = monthCost(from, t), mTo = monthCost(to, t), dm = t.vol ? mTo - mFrom : null;
+  const others = usedBy(pt.id).filter(n => n !== t.name.toLowerCase());
+  modal.innerHTML = `<h3 id="modalTitle">Сменить модель: ${esc(t.name.toLowerCase())}</h3><div class="mb">
+      <div class="cmp">
+        <div class="box"><small>Было</small><b>${from.name}</b><span>${pf.name}</span>${t.vol ? `<span>${usd(mFrom,0)} в месяц</span>` : ''}</div>
+        <div class="arr">→</div>
+        <div class="box new"><small>Станет</small><b>${to.name}</b><span>${pt.name}</span>${t.vol ? `<span>${usd(mTo,0)} в месяц</span>` : ''}</div>
+      </div>
+      <div class="facts">
+        ${dm !== null ? `<div><i>${dm > 0 ? '↑' : '↓'}</i><span>Расход ${dm > 0 ? 'вырастет' : 'снизится'} на <b class="${dm>0?'delta-up':'delta-down'}">${usd(Math.abs(dm),0)} в месяц</b></span></div>` : ''}
+        <div><i>$</i><span>Баланс ${pt.name}: <b class="num">${usd(pt.balance)}</b>${others.length ? ` · уже обслуживает: ${others.join(', ')}` : ''}</span></div>
+        ${pt.status !== 'ok' ? `<div style="color:var(--warn)"><i>!</i><span>${pt.name}: ${esc(pt.note)}</span></div>` : ''}
+        <div class="muted"><i>⏱</i><span>Новые задачи пойдут на эту модель сразу. Задачи, которые уже выполняются, доработают на старой.</span></div>
+      </div>
+      ${whyField()}</div>
+    <div class="mf"><button class="btn" data-act="cancel">Отмена</button><button class="btn primary" data-act="confirm" disabled>Переключить</button></div>`;
+  showModal('#why');
+}
+const whyField = () => `<label class="fld">Причина — обязательно, попадёт в журнал<textarea id="why" data-req required aria-required="true" placeholder="Например: закончился баланс, провайдер отдаёт ошибки, дешевле на 30%"></textarea></label>`;
+function showModal(focusSel){ modalWrap.classList.add('show'); setTimeout(() => modal.querySelector(focusSel)?.focus(), 50); }
+function closeConfirm(){ modalWrap.classList.remove('show'); confirmCtx = null; lastFocus?.focus?.(); }
+let undoState = null, toastTimer;
+const snapshot = () => ({assign:{...assign}, log:[...LOG], tiers:TIERS.map(t => ({...t}))});
+function applyChange({tier, to}, why){
+  undoState = snapshot();
+  LOG.forEach(e => e.fresh = false);
+  LOG.unshift({t:new Date(), who:'admin', tier, from:assign[tier], to, why, fresh:true});
+  assign[tier] = to;
+  render();
+  toast(`${T(tier).name} → ${P(M(to).p).name} · ${M(to).name}`, true);
+}
+
+/* ============ Добавление и удаление видов задач ============ */
+let draft = null;
+function openAddTier(){
+  lastFocus = document.activeElement;
+  draft = {name:'', model:null};
+  confirmCtx = {kind:'add'};
+  renderAddTier();
+  showModal('#tName');
+}
+function renderAddTier(){
+  modal.innerHTML = `<h3 id="modalTitle">Новый вид задач</h3><div class="mb">
+      <label class="fld">Название<input id="tName" data-req type="text" value="${esc(draft.name)}" placeholder="Например: Переводы"></label>
+      <div class="fld" style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--text-2)">Модель${trigHtml('__new', draft.model, 'Модель для нового вида задач')}</div>
+      <p class="muted" style="margin:0;font-size:12px">Стоимость в месяц появится после первых 7 дней работы — объёма токенов ещё нет.</p>
+    </div>
+    <div class="mf"><button class="btn" data-act="cancel">Отмена</button><button class="btn primary" data-act="confirm" ${draft.name.trim() && draft.model ? '' : 'disabled'}>Добавить</button></div>`;
+}
+function applyAddTier(){
+  undoState = snapshot();
+  const id = 't' + Date.now().toString(36);
+  TIERS.push({id, name:draft.name.trim(), vol:null});
+  assign[id] = draft.model;
+  LOG.forEach(e => e.fresh = false);
+  LOG.unshift({t:new Date(), who:'admin', tier:id, from:null, to:draft.model, why:'Новый вид задач', fresh:true});
+  render();
+  toast(`Добавлен вид задач «${draft.name.trim()}»`, true);
+}
+function deleteTier(tid){
+  if (active().length < 2) return;
+  undoState = snapshot();
+  T(tid).deleted = true;
+  render();
+  toast(`Вид задач «${T(tid).name}» удалён`, true);
+}
+
+function toast(msg, undo){
+  const el = document.getElementById('toast');
+  el.innerHTML = esc(msg) + (undo ? '<button data-act="undo">Вернуть</button>' : '');
+  el.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 7000);
+}
+
+/* ============ События ============ */
+const view = document.getElementById('view'), modalWrap = document.getElementById('modalWrap'), modal = document.getElementById('modal');
+document.addEventListener('click', e => {
+  const el = e.target.closest('button, [data-act]'); if (!el) return;
+  const d = el.dataset;
+  if (d.cb){
+    if (cb && cb.trig === el) return closeCombo();
+    if (d.cb === '__new') return openCombo(el, {tier:null, cur:draft.model,
+      onPick: mid => { draft.model = mid; renderAddTier(); modal.querySelector('[data-cb=__new]').focus(); }});
+    const t = T(d.cb);
+    return openCombo(el, {tier:t, cur:assign[t.id], onPick: mid => mid === assign[t.id] ? el.focus() : openConfirm(t.id, mid)});
+  }
+  if (d.del) return deleteTier(d.del);
+  if (d.f){ logFilter = d.f; return render(); }
+  switch (d.act){
+    case 'cancel': return closeConfirm();
+    case 'confirm': {
+      if (confirmCtx.kind === 'add'){ closeConfirm(); return applyAddTier(); }
+      const ch = confirmCtx, why = modal.querySelector('#why').value.trim(); if (!why) return;
+      closeConfirm(); return applyChange(ch, why); }
+    case 'addTier': return openAddTier();
+    case 'undo': if (undoState){ assign = undoState.assign; LOG = undoState.log; TIERS = undoState.tiers; undoState = null; render(); toast('Изменение отменено'); } return;
+    case 'refresh': lastPoll = Date.now(); tickPoll(); return toast('Балансы и статусы обновлены');
+  }
+});
+document.addEventListener('input', e => {
+  if (!modalWrap.contains(e.target)) return;
+  if (e.target.id === 'tName') draft.name = e.target.value;
+  // Кнопка подтверждения доступна, только когда заполнены обязательные поля
+  const ok = confirmCtx?.kind === 'add' ? draft.name.trim() && draft.model : modal.querySelector('#why')?.value.trim();
+  modal.querySelector('[data-act=confirm]').disabled = !ok;
+});
+modalWrap.addEventListener('click', e => { if (e.target === modalWrap) closeConfirm(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !cb && modalWrap.classList.contains('show')) closeConfirm();
+});
+document.getElementById('btnCollapse').addEventListener('click', () => document.getElementById('app').classList.toggle('collapsed'));
+render();
+function tickPoll(){
+  if (Date.now() - lastPoll >= 60000) lastPoll = Date.now();
+  document.querySelectorAll('.poll-ago').forEach(el => el.textContent = agoTxt());
+}
+setInterval(tickPoll, 1000);
+</script>
+</body>
+</html>
